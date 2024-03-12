@@ -617,8 +617,8 @@ void cv_setup_check() {
     }
     LOG(1, "int_lim_max %d\n", CV_ARRAY_FLASH[51]);
     LOG(1, "int_lim_min %d\n", CV_ARRAY_FLASH[52]);
+    gpio_put(LED_PIN, 0);
 }
-
 
 // Motor PWM initialization
 void init_motor_pwm(const uint8_t gpio) {
@@ -648,6 +648,9 @@ void init_adc() {
 
 int main() {
     stdio_init_all();
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 1);
     LOG(1, "\n\n======\ncore0 init\n");
     LOG(1, "Init motor PWM\n");
     init_motor_pwm(MOTOR_FWD_PIN);
@@ -659,12 +662,14 @@ int main() {
     LOG(1, "init outputs\n");
     init_outputs();
     LOG(1, "init gpios\n");
+
     gpio_init(DCC_INPUT_PIN);
     gpio_set_dir(DCC_INPUT_PIN, GPIO_IN);
     gpio_pull_up(DCC_INPUT_PIN);
     gpio_set_irq_enabled_with_callback(DCC_INPUT_PIN, GPIO_IRQ_EDGE_RISE, true, &track_signal_rise);
+
     LOG(1, "core0 done\n");
-    busy_wait_ms(100);
+    busy_wait_ms(200);
     multicore_launch_core1(core1_entry);
     while (true);
 }
