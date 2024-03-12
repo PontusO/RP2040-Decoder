@@ -617,7 +617,7 @@ void cv_setup_check() {
     }
     LOG(1, "int_lim_max %d\n", CV_ARRAY_FLASH[51]);
     LOG(1, "int_lim_min %d\n", CV_ARRAY_FLASH[52]);
-    gpio_put(LED_PIN, 0);
+    gpio_put(PICO_DEFAULT_LED_PIN, 0);
 }
 
 // Motor PWM initialization
@@ -648,9 +648,9 @@ void init_adc() {
 
 int main() {
     stdio_init_all();
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_put(LED_PIN, 1);
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
     LOG(1, "\n\n======\ncore0 init\n");
     LOG(1, "Init motor PWM\n");
     init_motor_pwm(MOTOR_FWD_PIN);
