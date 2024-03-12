@@ -29,7 +29,11 @@
 // Constant Value of 125 x 10^6
 #define _125M 125000000
 
+#if defined(ILABS_OPENDEC02)
+// Definitions for the ilabs opendec02 board
 // GPIO used for DCC-Signal, Motor PWM or ADC, LED's etc
+#warning Building for the iLabs OpenDec02 board
+
 #define LED_PIN               15u
 #define DCC_INPUT_PIN         20u
 #define MOTOR_FWD_PIN         22u
@@ -45,6 +49,27 @@
 #else
    // GPIO used directly (GPIO 0-5 incl.) as outputs or to switch auxiliary output transistors (GPIO 24-27 incl.)
    #define GPIO_OUTPUT_PIN_MASK (1u<<23) | (1u<<24) | (1u<<25) | (1u<<26) | (1u<<5) | (1u<<4) | (1u<<3) | (1u<<2) | (1u<<1) | (1u<<0)
+#endif
+#else
+// For the standard configuration
+// GPIO used for DCC-Signal, Motor PWM or ADC
+
+#warning Building for the RP2040 open source locomotive decoder
+#define DCC_INPUT_PIN 21u
+#define MOTOR_FWD_PIN 23u
+#define MOTOR_REV_PIN 22u
+#define FWD_V_EMF_ADC_PIN 28u
+#define REV_V_EMF_ADC_PIN 29u
+
+// if logging is enabled do NOT use gpio0/1 for functions in the decoder
+#if LOGLEVEL != 0
+   // GPIO used directly (GPIO 2-5 incl.) as outputs or to switch auxiliary output transistors (GPIO 24-27 incl.)
+   #define GPIO_OUTPUT_PIN_MASK (1u<<24) | (1u<<25) | (1u<<26) | (1u<<27) | (1u<<5) | (1u<<4) | (1u<<3) | (1u<<2)
+#else
+   // GPIO used directly (GPIO 0-5 incl.) as outputs or to switch auxiliary output transistors (GPIO 24-27 incl.)
+   #define GPIO_OUTPUT_PIN_MASK (1u<<24) | (1u<<25) | (1u<<26) | (1u<<27) | (1u<<5) | (1u<<4) | (1u<<3) | (1u<<2) | (1u<<1) | (1u<<0)
+#endif
+
 #endif
 
 // GPIO pin mask to prevent setting illegal GPIOs (ADC, Motor, DCC Input Pin)
