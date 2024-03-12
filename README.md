@@ -34,6 +34,9 @@ Note: The decoder is still in early development, there might (will) be bugs as i
 So suggestions on how to improve things and bug reports are always much appreciated.
 The wiki is also work in progress and will be updated to be as comprehensive as possible.
 
+2 hardware versions is supported. By default the original board created by Gabriel is supported and by running cmake
+with the following option: "-DPICO_BOARD=ilabs_opendec02" the project is setup for the iLabs OpenDec02 decoder."
+
 ------------
 <p float="left">
 <img src="/docs/png/RP2040-Decoder-Rev_0_2_front.png" alt="PCB Front Side Image" title="Front" width="400"/>
