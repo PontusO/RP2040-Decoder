@@ -12,7 +12,7 @@ uint64_t input_bit_buffer = 0;
 uint16_t level_table[32] = {0};
 absolute_time_t falling_edge_time, rising_edge_time;
 /* Core 1 owns the motor pins per default. */
-volatile bool motor_owner = 1;
+struct mutex motor_owner;
 
 
 // Function returns average of values deviating less than twice the standard deviation from original average
@@ -388,11 +388,11 @@ void instruction_evaluation(const uint8_t number_of_bytes, const uint8_t *const 
             // If we are setting speed step 1, moving from step 0 and CV65 is non zero we do a kick start.
             if (speed_step_target == 1 && speed_step_target_prev == 0 && CV_ARRAY_FLASH[64]) {
                 int pwm_pin = get_direction_of_speed_step(speed_step_target) ? MOTOR_FWD_PIN : MOTOR_REV_PIN;
-                motor_owner = 0; // Take ownership of motor pins
+                mutex_enter_blocking(&motor_owner); // Take ownership of motor pins
                 pwm_set_gpio_level(pwm_pin, _125M / (CV_ARRAY_FLASH[8] * 100 + 10000));
                 busy_wait_us(500 * CV_ARRAY_FLASH[64]);
                 pwm_set_gpio_level(pwm_pin, 0);
-                motor_owner = 1; // Return motor pins to core 1.
+                mutex_exit(&motor_owner); // Return motor pins to core 1.
             }
         }
 
@@ -661,6 +661,7 @@ void init_adc() {
 }
 
 int main() {
+    mutex_init(&motor_owner);
     stdio_init_all();
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);

@@ -86,7 +86,7 @@ extern repeating_timer_t speed_helper_timer;
 extern const uint8_t *CV_ARRAY_FLASH;
 extern uint8_t speed_step_target;
 extern uint8_t speed_step_target_prev;
-extern volatile bool motor_owner;
+extern struct mutex motor_owner;
 
 
 void core1_entry();

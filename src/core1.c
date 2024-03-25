@@ -81,7 +81,7 @@ bool speed_helper(struct repeating_timer *const t) {
 // Helper function to adjust pwm level/duty cycle.
 void adjust_pwm_level(const uint16_t level) {
     /* Only update the speed if we own the motor pins. */
-    if (motor_owner) {
+    if (mutex_try_enter(&motor_owner, NULL)) {
         if (get_direction_of_speed_step(speed_step_target)) {
             // Forward
             pwm_set_gpio_level(MOTOR_REV_PIN, 0);
@@ -91,6 +91,7 @@ void adjust_pwm_level(const uint16_t level) {
             pwm_set_gpio_level(MOTOR_FWD_PIN, 0);
             pwm_set_gpio_level(MOTOR_REV_PIN, level);
         }
+        mutex_exit(&motor_owner);
     }
 }
 
