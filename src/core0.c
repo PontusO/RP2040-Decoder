@@ -11,6 +11,8 @@ const uint8_t *CV_ARRAY_FLASH = (const uint8_t *) (XIP_BASE + FLASH_TARGET_OFFSE
 uint64_t input_bit_buffer = 0;
 uint16_t level_table[32] = {0};
 absolute_time_t falling_edge_time, rising_edge_time;
+/* Core 1 owns the motor pins per default. */
+volatile bool motor_owner = 1;
 
 
 // Function returns average of values deviating less than twice the standard deviation from original average
@@ -371,6 +373,7 @@ void instruction_evaluation(const uint8_t number_of_bytes, const uint8_t *const 
     }
     const uint8_t command_byte_n = byte_array[command_byte_start_index];
 
+    /* Speed control */
     if (command_byte_n == 0b00111111) {
         // 0011-1111 (128 Speed Step Control) - 2 Byte length
         speed_step_target_prev = speed_step_target;
@@ -381,7 +384,18 @@ void instruction_evaluation(const uint8_t number_of_bytes, const uint8_t *const 
         // In case of a direction change, functions need to be updated because functions depend on direction
         if (direction_changed) {
             update_active_functions(0, 0, true);
+        } else {
+            // If we are setting speed step 1, moving from step 0 and CV65 is non zero we do a kick start.
+            if (speed_step_target == 1 && speed_step_target_prev == 0 && CV_ARRAY_FLASH[64]) {
+                int pwm_pin = get_direction_of_speed_step(speed_step_target) ? MOTOR_FWD_PIN : MOTOR_REV_PIN;
+                motor_owner = 0; // Take ownership of motor pins
+                pwm_set_gpio_level(pwm_pin, _125M / (CV_ARRAY_FLASH[8] * 100 + 10000));
+                busy_wait_us(500 * CV_ARRAY_FLASH[64]);
+                pwm_set_gpio_level(pwm_pin, 0);
+                motor_owner = 1; // Return motor pins to core 1.
+            }
         }
+
     }
 
     else if (command_byte_n >> 6 == 0b00000010) {
