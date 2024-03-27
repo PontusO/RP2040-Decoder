@@ -1,7 +1,16 @@
 RP2040-Decoder
 ===============
 
-This Project is a DIY DCC Decoder for model railroad locomotives which aims to be cost effective.
+This Project is a fork from Garbiel Keppensteings RP2040 base DIY DCC Decoder for model railroad locomotives which aims to be cost effective.
+
+News
+----
+
+2024-03-27 - The latest firmware (V2) now also supports a kick start feature.
+             This is controlled by CV65. Setting this CV to anythin non zero will enable a motor pulse equal in milliseconds to the number written into CV65.
+	     This feature is used to overcome motor and drivetrain stiction when a locomotive starts to move from standstill.
+	     The default value is 0 which means the feature is disabled and setting it to a non zero value will enable the feature.
+	     Do not write the value 255 (a 255 mS pulse) to this register as this will completely reset your decoder.
 
 Features
 --------
