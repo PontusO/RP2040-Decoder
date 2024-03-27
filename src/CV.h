@@ -84,7 +84,7 @@ uint8_t CV_ARRAY_DEFAULT [CV_ARRAY_SIZE] = {
    0b00001111,         //CV_63  -   l_side_arr_cutoff      -   Default = 15                                           //
    0b00001111,         //CV_64  -   r_side_arr_cutoff      -   Default = 15                                           //
    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   0b00000000,         //CV_65  -   Values > 0 indicate that flash is still in factory condition
+   0b00000000,         //CV_65  -   = 255 indicates factory condition, != 255 this register acts as the kick start.
    0b00000000,         //CV_66  -
    0b00000000,         //CV_67  -
    0b00000000,         //CV_68  -
