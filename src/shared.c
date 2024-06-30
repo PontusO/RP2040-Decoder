@@ -20,6 +20,8 @@ float measure(uint8_t total_iterations,
     uint16_t adc_val[total_iterations];
     int32_t j = 0;
     uint16_t key;
+
+    mutex_enter_blocking(&motor_owner); // Take ownership of motor pins
     pwm_set_gpio_level(MOTOR_FWD_PIN, 0);
     pwm_set_gpio_level(MOTOR_REV_PIN, 0);
     adc_select_input((!direction)+2);
@@ -36,6 +38,7 @@ float measure(uint8_t total_iterations,
         }
         adc_val[j + 1] = key;
     }
+    mutex_exit(&motor_owner);
     adc_run(false);
     //discard x entries beginning from the lowest entry of the array (counting up); x = msr.l_side_arr_cutoff
     //discard y entries beginning from the highest index of the array (counting down); y = msr.r_side_arr_cutoff
@@ -65,6 +68,6 @@ uint16_t get_16bit_CV (uint16_t CV_start_index){
 }
 
 bool get_direction_of_speed_step(uint8_t speed_step){
-    // Shift by 7 Bytes to move bit7 into bit0 position and return
+    // Shift by 7 bits to move bit7 into bit0 position and return
     return speed_step >> 7;
 }

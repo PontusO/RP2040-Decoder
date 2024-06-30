@@ -13,7 +13,6 @@ uint16_t level_table[32] = {0};
 absolute_time_t falling_edge_time, rising_edge_time;
 /* Core 1 owns the motor pins per default. */
 struct mutex motor_owner;
-struct mutex speed_change;
 
 
 // Function returns average of values deviating less than twice the standard deviation from original average
@@ -245,6 +244,7 @@ void program_mode(const uint8_t number_of_bytes, const uint8_t *const byte_array
 void set_outputs(const uint32_t functions_to_set_bitmask) {
     // Get outputs with pwm enabled and preset outputs_to_set_PWM variable with resulting GPIO Bitmask
     const uint32_t PWM_enabled_outputs = get_32bit_CV(111);
+    const uint32_t bit_inverted_outputs = get_32bit_CV(252);
     uint32_t outputs_to_set_PWM = PWM_enabled_outputs;
 
     // Get enabled output configuration corresponding to set functions and direction
@@ -257,8 +257,10 @@ void set_outputs(const uint32_t functions_to_set_bitmask) {
         }
         temp_mask <<= 1;
     }
+
     outputs_to_set_PWM &= outputs_to_set;                       // Outputs with PWM to be enabled
     outputs_to_set &= ~outputs_to_set_PWM;                      // Outputs without PWM to be enabled
+    outputs_to_set ^= bit_inverted_outputs;                     // Invert any output bits (pwm ?)
 
     // Set regular outputs without PWM, preventing illegal GPIO by masking with GPIO_ALLOWED_OUTPUTS
     gpio_put_masked(GPIO_ALLOWED_OUTPUTS, outputs_to_set);
@@ -374,37 +376,61 @@ void instruction_evaluation(const uint8_t number_of_bytes, const uint8_t *const 
     }
     const uint8_t command_byte_n = byte_array[command_byte_start_index];
 
+    const bool CV_29_bit1 = (CV_ARRAY_FLASH[28] & 0b00000010) >> 1; /* Check for supported speed packets */
     /* Speed control */
-    if (command_byte_n == 0b00111111) {
-        // Block any reentrant attempts to update the speed
-        if (mutex_try_enter(&speed_change, NULL)) {
-            mutex_exit(&speed_change);
-            // 0011-1111 (128 Speed Step Control) - 2 Byte length
+    if (CV_29_bit1) {
+        if (command_byte_n == 0b00111111) { /* Advanced Operation Instructions */
+            // Block any reentrant attempts to update the speed
+            if (mutex_try_enter(&motor_owner, NULL)) {
+                // 0011-1111 (128 Speed Step Control) - 2 Byte length
+                speed_step_target_prev = speed_step_target;
+                speed_step_target = byte_array[command_byte_start_index - 1];
+                // Check for direction change
+                const bool direction_changed = get_direction_of_speed_step(speed_step_target) !=
+                                        get_direction_of_speed_step(speed_step_target_prev);
+                // In case of a direction change, functions need to be updated because functions depend on direction
+                if (direction_changed)
+                    update_active_functions(0, 0, true);
+                // If we are setting speed step 1, moving from step 0 and CV65 is non zero we do a kick start.
+                if ((speed_step_target & 0x7f) && (speed_step_target_prev & 0x7f) < 2 && CV_ARRAY_FLASH[64]) {
+                    int pwm_pin = get_direction_of_speed_step(speed_step_target) ? MOTOR_FWD_PIN : MOTOR_REV_PIN;
+                    pwm_set_gpio_level(pwm_pin, (_125M / (CV_ARRAY_FLASH[8] * 100 + 10000))-1);
+                    busy_wait_ms(CV_ARRAY_FLASH[64]);
+                    pwm_set_gpio_level(pwm_pin, 0);
+                }
+                mutex_exit(&motor_owner); // Return motor pins to core 1.
+            }
+        } else if ((command_byte_n & 0b01000000) == 0b01000000) {  /* standard 28 speed steps */
+            // 28 Speed step control - basic control package
             speed_step_target_prev = speed_step_target;
-            speed_step_target = byte_array[command_byte_start_index - 1];
+            /* As we work natively with 128 speeds steps we here 
+            convert from 28 (32 counts) speed steps to 126(128) */
+            speed_step_target = ((command_byte_n & 0x0f) << 1 | ((command_byte_n & 0b00010000) >> 4)) * 4;
+            /* Move direction bit into speed target */
+            speed_step_target |= (command_byte_n & 0b00100000) << 2;
             // Check for direction change
             const bool direction_changed = get_direction_of_speed_step(speed_step_target) !=
                                     get_direction_of_speed_step(speed_step_target_prev);
             // In case of a direction change, functions need to be updated because functions depend on direction
-            if (direction_changed) {
+            if (direction_changed)
                 update_active_functions(0, 0, true);
-            } else {
-                // If we are setting speed step 1, moving from step 0 and CV65 is non zero we do a kick start.
-                if ((speed_step_target & 0x7f) && (speed_step_target_prev & 0x7f) < 2 && CV_ARRAY_FLASH[64]) {
-                    mutex_enter_blocking(&speed_change); // Lock out any new speed commands
-                    int pwm_pin = get_direction_of_speed_step(speed_step_target) ? MOTOR_FWD_PIN : MOTOR_REV_PIN;
-                    mutex_enter_blocking(&motor_owner); // Take ownership of motor pins
-                    pwm_set_gpio_level(pwm_pin, (_125M / (CV_ARRAY_FLASH[8] * 100 + 10000))-1);
-                    busy_wait_ms(CV_ARRAY_FLASH[64]);
-                    pwm_set_gpio_level(pwm_pin, 0);
-                    mutex_exit(&motor_owner); // Return motor pins to core 1.
-                    mutex_exit(&speed_change);
-                }
-            }
         }
-    }
-
-    else if (command_byte_n >> 6 == 0b00000010) {
+    } else if ((command_byte_n & 0b01000000) == 0b01000000) {
+        // 14 Speed step control - basic control package
+        /* Headlight support not implemented yet */
+        speed_step_target_prev = speed_step_target;
+        /* As we work natively with 128 speeds steps we here 
+           convert from 14 speed steps to 126(128) */
+        speed_step_target = (command_byte_n & 0x0f) * 8;
+        /* Move direction bit into speed target */
+        speed_step_target |= (command_byte_n & 0b00100000) << 2;
+        // Check for direction change
+        const bool direction_changed = get_direction_of_speed_step(speed_step_target) !=
+                                get_direction_of_speed_step(speed_step_target_prev);
+        // In case of a direction change, functions need to be updated because functions depend on direction
+        if (direction_changed)
+            update_active_functions(0, 0, true);
+    } else if (command_byte_n >> 6 == 0b00000010) {
         // 10XX-XXXX (Function Group Instruction)
         switch (command_byte_n >> 4) {
             case 0b00001011:    // F5-F8
@@ -417,9 +443,7 @@ void instruction_evaluation(const uint8_t number_of_bytes, const uint8_t *const 
                 update_active_functions((((command_byte_n & 0b00001111) << 1) + ((command_byte_n & 0b00010000) >> 4)), 0, false);
                 break;
         }
-    }
-
-    else if (command_byte_n >> 5 == 0b00000110) {
+    } else if (command_byte_n >> 5 == 0b00000110) {
         //Feature Expansion Instruction 110X-XXXX
         switch (command_byte_n) {
             case 0b11011110: // F13-F20
@@ -668,7 +692,6 @@ void init_adc() {
 
 int main() {
     mutex_init(&motor_owner);
-    mutex_init(&speed_change);
     stdio_init_all();
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -684,6 +707,8 @@ int main() {
     LOG(1, "init outputs\n");
     init_outputs();
     LOG(1, "init gpios\n");
+
+    LOG(1, "Base address is %d\n", CV_ARRAY_FLASH[0]);
 
     gpio_init(DCC_INPUT_PIN);
     gpio_set_dir(DCC_INPUT_PIN, GPIO_IN);

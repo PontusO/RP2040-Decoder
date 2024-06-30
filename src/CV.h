@@ -37,10 +37,10 @@ uint8_t CV_ARRAY_DEFAULT [CV_ARRAY_SIZE] = {
    0b00000000,         //CV_27  -
    0b00000000,         //CV_28  -
    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   //Bit_1, Bit_2, Bit_3, Bit_4, Bit_6 are currently not in use and therefore irrelevant.
+   //Bit_2, Bit_3, Bit_4, Bit_6 are currently not in use and therefore irrelevant.
    //Bit_0 is used to reverse direction i.e. 0 = normal; 1 = reverse
    //Bit_5 switches between basic and extended address i.e. 0 = basic address 1 = extended address
-   0b00000000,         //CV_29  -   Decoder Configuration
+   0b00000010,         //CV_29  -   Decoder Configuration (28/128 speed steps)
    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    0b00000000,         //CV_30  -
    0b00010000,         //CV_31  -   Extended CV pointer Bits 8-15
@@ -286,14 +286,22 @@ uint8_t CV_ARRAY_DEFAULT [CV_ARRAY_SIZE] = {
    0b00000000,         //CV_250  -
    0b00000000,         //CV_251  -
    0b00000000,         //CV_252  -
-   0b00000000,         //CV_253  -
-   0b00000000,         //CV_254  -
-   0b00000000,         //CV_255  -
-   0b00000000,         //CV_256  -
-//FUNCTION MAPPING CVS:
+// Register bit mapping
 //  31 30 29 28 - 27 26 25 24 -- 23 22 21 20 - 19 18 17 16 -- 15 14 13 12 - 11 10 9  8 -- 7 6 5 4 - 3 2 1 0   <-  GPIO
 //           byte_3           --           byte_2          --           byte_1         --       byte_0
 //  X  X  X  X  - X  X  X  X  -- X  X  X  X  - X  X  X  X  -- X  X  X  X  - X  X  X  X -- X X X X - X X X X
+//
+// Output bit inversion CVs
+// Sometimes you want an output bit to be inverted for a specific function.
+// For instance when connecting LED's that use a common anode and the pin is used to
+// sink current to get the LED lighting. In this case you will want the pin to be 3.3V
+// When the LED is not lit and 0V when the LED is being lit.
+// Setting a 1 in one of the registers below will activate the output bit inversion.
+   0b00000000,         //CV_253  -  byte 3
+   0b00000000,         //CV_254  -  byte 2
+   0b00000000,         //CV_255  -  byte 1
+   0b00000000,         //CV_256  -  byte 0
+//FUNCTION MAPPING CVS:
 //F0 forward
    0b00000000,         //CV_257  -  byte 3
    0b00000000,         //CV_258  -  byte 2

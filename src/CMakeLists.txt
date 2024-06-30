@@ -50,7 +50,7 @@ target_link_libraries(
 pico_enable_stdio_usb(RP2040-Decoder 0)
 
 # disable uart output (to enable put a 1 instead of the 0)
-pico_enable_stdio_uart(RP2040-Decoder 0)
+pico_enable_stdio_uart(RP2040-Decoder 1)
 
 # create map/bin/hex file etc.
 #pico_add_extra_outputs(RP2040-Decoder)
