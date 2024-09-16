@@ -6,6 +6,9 @@ This Project is a fork from Garbiel Keppensteings RP2040 base DIY DCC Decoder fo
 News
 ----
 
+2024-06-30 - Added the possibility to invert the output bits. Very usefull if you are connecting common anode LED's to your decoder.
+             Also added support for 14 and 28 speed steps.
+	     
 2024-03-27 - The latest firmware (V2) now also supports a kick start feature.
              This is controlled by CV65. Setting this CV to anythin non zero will enable a motor pulse equal in milliseconds to the number written into CV65.
 	     This feature is used to overcome motor and drivetrain stiction when a locomotive starts to move from standstill.
